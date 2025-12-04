@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PNLE REVIEWER | Question Uploader</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background-color: #0f172a; color: #cbd5e1; }
+    
+    /* HEADER */
+    h2 { color: #22c55e; /* Green for Health/Nursing */ border-bottom: 2px solid #334155; padding-bottom: 15px; margin-top: 0; display: flex; align-items: center; gap: 10px; }
+    
+    /* INPUT AREA */
+    textarea { 
+        width: 100%; height: 300px; padding: 15px; font-size: 14px; box-sizing: border-box; 
+        border: 1px solid #334155; border-radius: 8px; font-family: "Courier New", monospace; 
+        line-height: 1.5; resize: vertical; background: #1e293b; color: #f1f5f9;
+    }
+    textarea:focus { outline: none; border-color: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.1); }
+
+    /* BUTTONS */
+    .controls { margin: 20px 0; background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; }
+    .controls-row { display:flex; gap:12px; flex-wrap:wrap; align-items: center; }
+    
+    button { 
+        padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer; 
+        border: none; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+    }
+    
+    #btnPreview { background-color: #fbbf24; color: #0f172a; }
+    #btnPreview:hover { filter: brightness(1.1); }
+    
+    #btnUpload { background-color: #10b981; color: white; }
+    #btnUpload:disabled { background-color: #334155; color: #64748b; cursor: not-allowed; }
+    
+    #btnClear { background-color: #ef4444; color: white; }
+    
+    #btnFetch { margin-left: auto; background: #3b82f6; color: white; }
+
+    /* STATUS & PREVIEW */
+    .status { margin-top: 15px; font-weight: 500; color: #94a3b8; padding: 10px; background: #0f172a; border-radius: 6px; border-left: 4px solid #fbbf24; }
+    
+    .preview-container { margin-top: 30px; }
+    .preview-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #f8fafc; border-left: 4px solid #3b82f6; padding-left: 10px; }
+    
+    .question-card { 
+        background: #1e293b; border: 1px solid #334155; padding: 20px; margin-bottom: 15px; 
+        border-radius: 10px; position: relative; 
+    }
+    
+    /* ERROR DESIGN */
+    .question-card.error-card { border: 1px solid #ef4444; background-color: rgba(239, 68, 68, 0.05); }
+    .error-msg { color: #ef4444; font-weight: bold; font-size: 12px; display: block; margin-bottom: 10px; background: rgba(239, 68, 68, 0.1); padding: 5px 10px; border-radius: 4px; }
+
+    /* TEXT STYLES */
+    .q-text { font-weight: 600; color: #e2e8f0; margin-bottom: 12px; font-size: 16px; }
+    .choices-box { margin-left: 10px; font-size: 14px; color: #cbd5e1; border-left: 2px solid #475569; padding-left: 15px; }
+    
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+    .badge-ans { background-color: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-topic { background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-missing { background-color: #ef4444; color: white; }
+
+    .meta-box { margin-top: 15px; font-size: 13px; color: #94a3b8; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px dashed #334155; }
+    
+    /* TABLE FOR DB VIEW */
+    .db-list { max-height: 600px; overflow-y: auto; border: 1px solid #334155; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; background: #1e293b; }
+    th { background: #0f172a; font-weight: 600; color: #cbd5e1; position: sticky; top: 0; z-index: 10; text-align: left; padding: 15px; border-bottom: 2px solid #334155; }
+    td { padding: 15px; border-bottom: 1px solid #334155; font-size: 14px; vertical-align: top; color: #cbd5e1; }
+    tr:hover { background-color: #334155; }
+    
+    .muted { color:#64748b; font-size:13px; line-height: 1.5; margin-bottom: 15px; display: block; }
+  </style>
+</head>
+<body>
+
+  <h2><i class='bx bxs-injection'></i> PNLE REVIEWER: Database Manager</h2>
+
+  <span class="muted">
+    <b>Format Guide:</b> Paste text below. Separate questions with a blank line.<br>
+    Format: Question, Choices (A-D), Answer: X, Rationale: ...
+  </span>
+
+  <textarea id="bulkRaw" placeholder="Paste your PNLE questions here...
+
+1. A client with heart failure is prescribed furosemide. Which laboratory value should the nurse monitor most closely?
+A. Sodium
+B. Potassium
+C. Calcium
+D. Magnesium
+Answer: B
+Rationale: Furosemide is a loop diuretic that promotes potassium excretion, leading to hypokalemia.
+Category: MedSurg
+
+2. Which immunization is administered at birth?
+A. BCG and Hepatitis B
+B. DPT and OPV
+C. Measles
+D. Rotavirus
+Answer: A
+Rationale: BCG and Hepatitis B are given at birth per EPI schedule.
+Category: MCN"></textarea>
+
+  <div class="controls">
+    <div class="controls-row">
+      <button id="btnPreview"><i class='bx bx-scan'></i> 1. Scan & Verify</button>
+      <button id="btnUpload" disabled><i class='bx bx-cloud-upload'></i> 2. Upload to App</button>
+      <button id="btnClear"><i class='bx bx-trash'></i> Clear</button>
+      <button id="btnFetch"><i class='bx bx-data'></i> View Live Data</button>
+    </div>
+    <div class="status" id="status">Ready. Waiting for input...</div>
+  </div>
+
+  <div id="previewContainer" class="preview-container" style="display:none">
+    <div class="preview-header">Scan Results</div>
+    <div id="previewList"></div>
+  </div>
+
+  <div id="dbContainer" class="preview-container" style="display:none">
+    <div class="preview-header">Live Database (Firestore: 'questions')</div>
+    <div id="uploadedList" class="db-list"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, doc, deleteDoc, getDocs, query, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // --- UPDATED CONFIG FOR PNLE REVIEWER ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBbwpEKp-vHN2mcAeEm6T_1te9tDK7vOO4",
+      authDomain: "pnlereviewer-f9d1b.firebaseapp.com",
+      projectId: "pnlereviewer-f9d1b",
+      storageBucket: "pnlereviewer-f9d1b.firebasestorage.app",
+      messagingSenderId: "222831488170",
+      appId: "1:222831488170:web:57e17d32f42cbffa3e74d3",
+      measurementId: "G-PLSJ1JSXC3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // --- UTILS ---
+    const escapeHtml = (str) => (!str ? "" : str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]));
+    const cleanText = (s) => (s || "").replace(/\s+/g, " ").trim();
+
+    // --- PNLE TOPIC DETECTION ---
+    function detectTopic(text) {
+      const q = text.toLowerCase();
+      
+      // Explicit Override via "Category: X" line
+      const explicit = text.match(/(?:Category|Topic|Subject)\s*[:\-]\s*(.*)/i);
+      if (explicit) {
+          const t = explicit[1].toLowerCase().trim();
+          if(t.includes('mcn') || t.includes('maternal')) return "Maternal & Child";
+          if(t.includes('chn') || t.includes('community')) return "Community Health";
+          if(t.includes('med') || t.includes('surg')) return "MedSurg";
+          if(t.includes('psych')) return "Psychiatric";
+          if(t.includes('fund') || t.includes('pal')) return "Fundamentals/PAL";
+          // Return whatever is written if not matched above, but capitalized
+          return explicit[1].trim(); 
+      }
+
+      // Keywords Auto-Detection for NURSING
+      const map = {
+        "Maternal & Child": ["maternal", "child", "ob", "labor", "delivery", "pregnancy", "fetus", "pediatric", "baby", "neonate", "lochia", "fundus"],
+        "Community Health": ["community", "public health", "epidemiology", "doh", "family planning", "environment", "herbal", "epi"],
+        "MedSurg": ["medical", "surgical", "disease", "symptom", "nursing care", "intervention", "post-op", "cardio", "respiratory", "gastro", "endo", "oncology"],
+        "Psychiatric": ["psychiatric", "mental", "behavior", "depression", "schizophrenia", "anxiety", "defense mechanism", "therapeutic communication", "crisis"],
+        "Fundamentals/PAL": ["fundamental", "basic", "ethics", "legal", "research", "leadership", "management", "history", "theory", "process", "vital signs"]
+      };
+
+      if (map["Maternal & Child"].some(w => q.includes(w))) return "Maternal & Child";
+      if (map["Community Health"].some(w => q.includes(w))) return "Community Health";
+      if (map["Psychiatric"].some(w => q.includes(w))) return "Psychiatric";
+      if (map["Fundamentals/PAL"].some(w => q.includes(w))) return "Fundamentals/PAL";
+      if (map["MedSurg"].some(w => q.includes(w))) return "MedSurg"; // Fallback for general disease questions
+      
+      return "General Nursing"; // Ultimate Fallback
+    }
+
+    // --- PARSER ---
+    function parseBlock(block) {
+      const lines = block.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
+      if (lines.length === 0) return null;
+
+      // Question extraction
+      let question = lines[0].replace(/^\d+[\.\)\-]\s*/, "").trim(); 
+      
+      let choices = { A: "", B: "", C: "", D: "" };
+      let answerLetter = "";
+      let rationale = "";
+
+      lines.forEach(line => {
+        const cleanLine = line.replace(/[\u200B-\u200D\uFEFF]/g, ''); 
+        
+        // Detect Answer
+        const ansMatch = cleanLine.match(/^(?:Answer|Ans|ANS)\s*[:\-\.]\s*([A-Za-z])/i);
+        if (ansMatch) { answerLetter = ansMatch[1].toUpperCase(); return; }
+
+        // Detect Rationale
+        const ratMatch = cleanLine.match(/^(?:Rationale|Rat)\s*[:\-\.]\s*(.*)/i);
+        if (ratMatch) { rationale = ratMatch[1]; return; }
+
+        // Detect Choices
+        const choiceMatch = cleanLine.match(/^([A-Da-d])\s*[\.\)\-]\s*(.*)/);
+        if (choiceMatch && !cleanLine.toLowerCase().startsWith("answer")) {
+          const letter = choiceMatch[1].toUpperCase();
+          if (choices[letter] !== undefined) choices[letter] = choiceMatch[2];
+        }
+      });
+
+      // Validation
+      const missing = [];
+      if (!question) missing.push("Question");
+      if (!choices.A) missing.push("Option A");
+      if (!choices.B) missing.push("Option B");
+      if (!choices.C) missing.push("Option C");
+      if (!choices.D) missing.push("Option D");
+      if (!answerLetter) missing.push("Answer Key");
+
+      // Map Answer Letter to Actual String Value (Required by Reviewer App)
+      let correctString = "";
+      if(answerLetter && choices[answerLetter]) {
+          correctString = choices[answerLetter];
+      } else {
+          missing.push("Answer Key Mismatch (Letter not in choices)");
+      }
+
+      return {
+        question, 
+        options: [choices.A, choices.B, choices.C, choices.D], // Convert to Array for Firestore
+        correct: correctString, 
+        answerLetter, // Keep for UI display
+        rationale, 
+        category: detectTopic(block),
+        isValid: missing.length === 0,
+        missing: missing
+      };
+    }
+
+    function parseBulk(raw) {
+      const blocks = raw.split(/\n\s*\n|---/).map(b => b.trim()).filter(b => b.length > 10);
+      return blocks.map(parseBlock).filter(p => p !== null);
+    }
+
+    // --- UI LOGIC ---
+    const els = {
+      raw: document.getElementById("bulkRaw"),
+      previewBtn: document.getElementById("btnPreview"),
+      uploadBtn: document.getElementById("btnUpload"),
+      clearBtn: document.getElementById("btnClear"),
+      fetchBtn: document.getElementById("btnFetch"),
+      status: document.getElementById("status"),
+      previewList: document.getElementById("previewList"),
+      previewCont: document.getElementById("previewContainer"),
+      dbCont: document.getElementById("dbContainer"),
+      dbList: document.getElementById("uploadedList")
+    };
+
+    let parsedData = [];
+
+    els.previewBtn.addEventListener("click", () => {
+      const raw = els.raw.value;
+      if (!raw.trim()) {
+        els.status.innerHTML = "Please paste text first.";
+        return;
+      }
+
+      parsedData = parseBulk(raw);
+      els.previewCont.style.display = "block";
+      els.dbCont.style.display = "none";
+      
+      if (parsedData.length === 0) {
+        els.status.innerHTML = "No questions detected. Check format.";
+        els.previewList.innerHTML = "<div style='padding:10px'>No data found.</div>";
+        return;
+      }
+
+      let validCount = 0;
+      let html = "";
+
+      parsedData.forEach((p, i) => {
+        if (p.isValid) validCount++;
+        
+        const errorClass = p.isValid ? "" : "error-card";
+        const errorMsg = p.isValid ? "" : `<span class="error-msg"><i class='bx bxs-error-circle'></i> MISSING: ${p.missing.join(", ")}</span>`;
+        
+        html += `
+          <div class="question-card ${errorClass}">
+            ${errorMsg}
+            <div style="display:flex; justify-content:space-between; align-items:flex-start">
+              <span class="badge badge-topic">${p.category}</span>
+              <span class="badge ${p.isValid ? 'badge-ans' : 'badge-missing'}">Ans: ${p.answerLetter}</span>
+            </div>
+            
+            <div class="q-text">Q${i+1}. ${escapeHtml(p.question)}</div>
+            
+            <div class="choices-box">
+              ${p.options[0] ? `A. ${escapeHtml(p.options[0])}` : `<span style="color:#ef4444">A. (Missing)</span>`}<br>
+              ${p.options[1] ? `B. ${escapeHtml(p.options[1])}` : `<span style="color:#ef4444">B. (Missing)</span>`}<br>
+              ${p.options[2] ? `C. ${escapeHtml(p.options[2])}` : `<span style="color:#ef4444">C. (Missing)</span>`}<br>
+              ${p.options[3] ? `D. ${escapeHtml(p.options[3])}` : `<span style="color:#ef4444">D. (Missing)</span>`}
+            </div>
+
+            ${p.rationale ? `<div class="meta-box"><b>Rationale:</b> ${escapeHtml(p.rationale)}</div>` : ""}
+          </div>
+        `;
+      });
+
+      els.previewList.innerHTML = html;
+      
+      if (validCount > 0) {
+        els.uploadBtn.disabled = false;
+        els.uploadBtn.innerHTML = `<i class='bx bx-cloud-upload'></i> Upload ${validCount} Items`;
+        els.status.innerHTML = `Found <b>${parsedData.length}</b> blocks. <b>${validCount}</b> are valid.`;
+      } else {
+        els.uploadBtn.disabled = true;
+        els.uploadBtn.textContent = "Fix Errors First";
+        els.status.innerHTML = "<span style='color:#ef4444'>All items have errors. Cannot upload.</span>";
+      }
+    });
+
+    els.uploadBtn.addEventListener("click", async () => {
+      const validItems = parsedData.filter(p => p.isValid);
+      if (validItems.length === 0) return;
+
+      els.uploadBtn.disabled = true;
+      els.uploadBtn.textContent = "Uploading...";
+      els.status.textContent = "Connecting to Database...";
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      // BATCH UPLOAD TO 'questions' COLLECTION
+      for (const item of validItems) {
+        try {
+          const docData = {
+            category: item.category,
+            question: cleanText(item.question),
+            options: item.options.map(cleanText), // Array
+            correct: cleanText(item.correct),     // String value
+            rationale: cleanText(item.rationale),
+            timestamp: Date.now()
+          };
+
+          // Save to 'questions' collection (Reviewer App reads this)
+          await addDoc(collection(db, "questions"), docData);
+          
+          successCount++;
+        } catch (err) {
+          console.error("Upload failed:", err);
+          errorCount++;
+        }
+      }
+
+      els.status.innerHTML = `<span style="color:#10b981"><b>Success!</b> Uploaded: ${successCount}</span> | Failed: ${errorCount}`;
+      
+      els.uploadBtn.textContent = "Upload Complete";
+      els.raw.value = ""; 
+      els.previewCont.style.display = "none";
+      
+      fetchDatabase(); // Refresh list
+    });
+
+    els.clearBtn.addEventListener("click", () => {
+        els.raw.value = "";
+        els.previewCont.style.display = "none";
+        els.status.textContent = "Cleared.";
+    });
+
+    els.fetchBtn.addEventListener("click", fetchDatabase);
+
+    async function fetchDatabase() {
+      els.previewCont.style.display = "none";
+      els.dbCont.style.display = "block";
+      els.dbList.innerHTML = "<div style='padding:20px; text-align:center;'>Loading from Firestore...</div>";
+
+      try {
+        // Query 'questions' collection
+        const q = query(collection(db, "questions"), orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          els.dbList.innerHTML = "<div style='padding:20px; text-align:center;'>Database is empty. Upload some questions!</div>";
+          return;
+        }
+
+        let html = `<table>
+          <thead>
+            <tr>
+              <th width="60%">Question & Answer</th>
+              <th>Category</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+        snapshot.forEach(docSnap => {
+          const d = docSnap.data();
+          html += `
+            <tr id="row-${docSnap.id}">
+              <td>
+                <div style="font-weight:bold; margin-bottom:5px;">${escapeHtml(d.question)}</div>
+                <div style="font-size:12px; color:#94a3b8;">
+                   Correct: <b style="color:#10b981">${escapeHtml(d.correct)}</b>
+                   <br>Rationale: ${escapeHtml(d.rationale || "None")}
+                </div>
+              </td>
+              <td><span class="badge badge-topic">${d.category || "General"}</span></td>
+              <td>
+                <button style="background:#ef4444; padding:6px 12px; font-size:12px;" 
+                  onclick="window.deleteItem('${docSnap.id}')">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+        
+        html += "</tbody></table>";
+        els.dbList.innerHTML = html;
+        els.status.textContent = `Loaded ${snapshot.size} questions.`;
+
+      } catch (err) {
+        els.dbList.innerHTML = `<div style="color:#ef4444; padding:20px;">Error loading DB: ${err.message}<br>Check Firebase Rules.</div>`;
+      }
+    }
+
+    window.deleteItem = async (id) => {
+      if(!confirm("Permanently delete this question?")) return;
+      try {
+        await deleteDoc(doc(db, "questions", id));
+        const row = document.getElementById(`row-${id}`);
+        if(row) row.style.display = 'none';
+      } catch(e) {
+        alert("Error deleting: " + e.message);
+      }
+    };
+
+  </script>
+</body>
+</html>
