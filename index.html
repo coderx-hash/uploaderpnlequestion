@@ -177,6 +177,17 @@
             align-items: center;
         }
         .preview-card.error { border-left-color: var(--red); background: rgba(239, 68, 68, 0.05); }
+        
+        .count-box {
+            padding: 10px; 
+            background: rgba(6, 182, 212, 0.1); 
+            border: 1px solid var(--cyan); 
+            border-radius: 6px; 
+            margin-bottom: 15px; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -444,8 +455,16 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
                 log("Database is empty.", "info");
                 return;
             }
+            
+            // --- NEW: TOTAL COUNT DISPLAY ---
+            let html = `
+                <div class="count-box">
+                    <span style="color:var(--text-muted);">TOTAL QUESTIONS IN DATABASE</span>
+                    <span style="font-size: 20px; font-weight:bold; color: var(--cyan); text-shadow: 0 0 10px rgba(6,182,212,0.5);">${snap.size}</span>
+                </div>
+            `;
 
-            let html = `<table><tr><th>Category</th><th>Question</th><th>Answer</th><th>Action</th></tr>`;
+            html += `<table><tr><th>Category</th><th>Question</th><th>Answer</th><th>Action</th></tr>`;
             snap.forEach(d => {
                 const data = d.data();
                 html += `
@@ -476,6 +495,7 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         try {
             await deleteDoc(doc(db, "questions", id));
             document.getElementById(`row-${id}`).style.display = 'none';
+            // Optional: Re-fetch to update count, or just let user click 'View Live Data' again
             log(`Deleted record ${id}`, "success");
         } catch(e) {
             log("Failed to delete record.", "error");
