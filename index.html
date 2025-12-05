@@ -9,7 +9,7 @@
     <style>
         :root {
             --bg-dark: #0f172a;
-            --panel-bg: rgba(30, 41, 59, 0.7);
+            --panel-bg: rgba(30, 41, 59, 0.8);
             --cyan: #06b6d4;
             --purple: #8b5cf6;
             --green: #10b981;
@@ -25,7 +25,7 @@
                 radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.1) 0%, transparent 20%),
                 radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
             color: var(--text-main);
-            font-family: 'Rajdhani', sans-serif; /* Techy but readable font */
+            font-family: 'Rajdhani', sans-serif;
             margin: 0;
             padding: 20px;
             min-height: 100vh;
@@ -73,17 +73,15 @@
         }
         .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 10px var(--green); }
 
-        /* PANELS (Glassmorphism) */
+        /* PANELS */
         .panel {
             background: var(--panel-bg);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             padding: 25px;
             margin-bottom: 25px;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s;
         }
         
         .panel h3 { margin-top: 0; font-size: 18px; color: var(--cyan); display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
@@ -97,7 +95,7 @@
             border: 1px solid #334155;
             border-radius: 8px;
             padding: 20px;
-            font-family: 'JetBrains Mono', monospace; /* Code font for input */
+            font-family: 'JetBrains Mono', monospace;
             font-size: 14px;
             resize: vertical;
             box-sizing: border-box;
@@ -128,7 +126,7 @@
 
         .btn-primary { background: linear-gradient(45deg, var(--cyan), #3b82f6); border: none; color: black; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); }
-        .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; transform: none; }
+        .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; transform: none; box-shadow: none; }
 
         .btn-secondary { border-color: var(--purple); color: var(--purple); }
         .btn-secondary:hover { background: rgba(139, 92, 246, 0.1); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
@@ -148,7 +146,7 @@
             border: 1px solid #333;
             color: #666;
         }
-        .log-entry { margin-bottom: 4px; }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #111; padding-bottom: 2px; }
         .log-success { color: var(--green); }
         .log-error { color: var(--red); }
         .log-info { color: var(--cyan); }
@@ -163,10 +161,10 @@
 
         .badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1px solid; display: inline-block; min-width: 40px; text-align: center; }
         .np1 { border-color: #94a3b8; color: #e2e8f0; background: rgba(148, 163, 184, 0.1); }
-        .np2 { border-color: #f472b6; color: #f472b6; background: rgba(244, 114, 182, 0.1); } /* Pink for Maternal */
-        .np3 { border-color: #fbbf24; color: #fbbf24; background: rgba(251, 191, 36, 0.1); } /* Yellow for Pedia */
-        .np4 { border-color: #f97316; color: #f97316; background: rgba(249, 115, 22, 0.1); } /* Orange for MedSurg */
-        .np5 { border-color: #a855f7; color: #a855f7; background: rgba(168, 85, 247, 0.1); } /* Purple for Psych */
+        .np2 { border-color: #f472b6; color: #f472b6; background: rgba(244, 114, 182, 0.1); }
+        .np3 { border-color: #fbbf24; color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
+        .np4 { border-color: #f97316; color: #f97316; background: rgba(249, 115, 22, 0.1); }
+        .np5 { border-color: #a855f7; color: #a855f7; background: rgba(168, 85, 247, 0.1); }
 
         .preview-card { 
             background: rgba(0,0,0,0.3); 
@@ -199,7 +197,7 @@
     <div class="header">
         <div>
             <h1>PNLE Command Center</h1>
-            <div style="color: var(--text-muted); font-size: 14px; letter-spacing: 1px;">DATABASE MANAGEMENT SYSTEM v2.1</div>
+            <div style="color: var(--text-muted); font-size: 14px; letter-spacing: 1px;">DATABASE MANAGEMENT SYSTEM v2.2 (Strict Mode)</div>
         </div>
         <div class="status-pill">
             <div class="status-dot"></div>
@@ -211,7 +209,7 @@
         <h3><i class='bx bx-terminal'></i> System Activity</h3>
         <div class="log-container" id="sysLog">
             <div class="log-entry log-info">> System Initialized...</div>
-            <div class="log-entry">> Deduplication Protocol: ACTIVE</div>
+            <div class="log-entry">> Strict Duplicate Detection: ACTIVE</div>
         </div>
     </div>
 
@@ -298,39 +296,42 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         consoleEl.scrollTop = consoleEl.scrollHeight;
     }
 
-    // --- CATEGORY DETECTION (NP1-NP5) ---
+    // --- CATEGORY DETECTION ---
     function detectNP(text) {
         const t = text.toLowerCase();
-        // Override
         const explicit = text.match(/(?:Category|Topic)\s*[:\-]\s*(NP\s*[1-5])/i);
         if (explicit) return explicit[1].replace(/\s+/,"").toUpperCase();
 
-        // Keywords
         if (t.match(/psych|mental|schizo|depress|anxiety|mania|suicide|hallucination|bipolar/)) return "NP5";
         if (t.match(/maternal|ob|labor|pregnancy|fetus|lochia|uterus|placenta/)) return "NP2";
         if (t.match(/emergenc|trauma|burn|neuro|stroke|hiv|cancer|onco|endo|diabetes|thyroid/)) return "NP4";
         if (t.match(/pedia|child|infant|toddler|cardio|respi|gastro|renal|fluid|pre-op|post-op/)) return "NP3";
-        
-        return "NP1"; // Default: Community/Funda
+        return "NP1";
     }
 
-    // --- PARSING ---
+    // --- PARSING WITH AGGRESSIVE CLEANING ---
     window.processInput = () => {
         const raw = document.getElementById('rawInput').value;
         if(!raw.trim()) { log("Input buffer is empty.", "error"); return; }
         
-        log("Scanning text block...");
+        log("Scanning and cleaning text block...");
         const blocks = raw.split(/\n\s*\n|---/).filter(b => b.trim().length > 10);
         
         parsedPayload = blocks.map(block => {
             const lines = block.split('\n').map(l => l.trim()).filter(l=>l);
-            let qText = lines[0].replace(/^\d+[\.\)\-]\s*/, "");
+            
+            // STRICT CLEANING: remove number, double spaces, and trim
+            let qText = lines[0]
+                .replace(/^\d+[\.\)\-]\s*/, "") // Remove "1. "
+                .replace(/\s+/g, " ")           // Replace multiple spaces/tabs with single space
+                .trim();                        // Trim ends
+
             let choices = {A:"", B:"", C:"", D:""};
             let ansKey = "";
             let rat = "";
 
             lines.forEach(l => {
-                const clean = l.replace(/[\u200B-\u200D\uFEFF]/g, '');
+                const clean = l.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Remove hidden chars
                 if(clean.match(/^(?:Ans|Answer)/i)) { ansKey = clean.split(/[:\-\.]/)[1]?.trim().toUpperCase().charAt(0); }
                 else if(clean.match(/^(?:Rat|Rationale)/i)) { rat = clean.split(/[:\-\.]/)[1]?.trim(); }
                 else if(clean.match(/^[A-D][\.\)\-]/)) {
@@ -378,7 +379,7 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
                 <div>
                     <div style="font-size: 15px; font-weight: 600; color: var(--text-main)">${item.question.substring(0,100)}...</div>
                     <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                        Answer: <span style="color: var(--cyan)">${item.correct}</span> | Rationale: ${item.rationale ? 'Yes' : 'No'}
+                        Answer: <span style="color: var(--cyan)">${item.correct}</span>
                     </div>
                     ${!item.valid ? `<div style="color: var(--red); font-size: 12px; margin-top:5px;">MISSING: ${item.missing.join(', ')}</div>` : ''}
                 </div>
@@ -399,33 +400,33 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         }
     }
 
-    // --- UPLOAD WITH DUPLICATE CHECK ---
+    // --- UPLOAD WITH STRICT DUPLICATE CHECK ---
     window.uploadData = async () => {
         const btn = document.getElementById('btnUpload');
         const validItems = parsedPayload.filter(i => i.valid);
         
         btn.disabled = true;
         btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Uploading...`;
-        log("Starting batch upload with deduplication...", "info");
+        log("Checking for duplicates against database...", "info");
 
         let success = 0;
         let fail = 0;
         let duplicates = 0;
 
+        // Use sequential loop (not parallel) to ensure accuracy
         for(const item of validItems) {
             try {
-                // 1. Check for Duplicate
+                // QUERY: Find strict match of question text
                 const q = query(collection(db, "questions"), where("question", "==", item.question));
-                const querySnapshot = await getDocs(q);
+                const snap = await getDocs(q);
 
-                if (!querySnapshot.empty) {
-                    // Duplicate found! Skip it.
+                if (!snap.empty) {
                     duplicates++;
-                    log(`Skipped duplicate: "${item.question.substring(0,20)}..."`, "warn");
-                    continue; 
+                    log(`Blocked Duplicate: "${item.question.substring(0,25)}..."`, "warn");
+                    continue; // Stop here, go to next item
                 }
 
-                // 2. Add if not duplicate
+                // If code reaches here, it's unique
                 await addDoc(collection(db, "questions"), {
                     question: item.question,
                     options: item.options,
@@ -435,13 +436,17 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
                     timestamp: Date.now()
                 });
                 success++;
+                // Slight delay to allow Firestore to index (improves stability)
+                await new Promise(r => setTimeout(r, 100)); 
+
             } catch(e) {
                 fail++;
                 console.error(e);
+                log("Upload Error: " + e.message, "error");
             }
         }
 
-        log(`Batch Finished. Uploaded: ${success}, Skipped (Duplicate): ${duplicates}, Errors: ${fail}`, success > 0 ? "success" : "warn");
+        log(`Process Done. Uploaded: ${success} | Duplicates Blocked: ${duplicates} | Errors: ${fail}`, success > 0 ? "success" : "warn");
         
         btn.innerHTML = `<i class='bx bx-check'></i> Complete`;
         setTimeout(() => { btn.innerHTML = `<i class='bx bx-cloud-upload'></i> Upload to Database`; }, 3000);
@@ -455,7 +460,7 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         const cont = document.getElementById('liveContent');
         area.style.display = 'block';
         cont.innerHTML = `<div style="padding:20px; text-align:center; color: var(--cyan)"><i class='bx bx-loader-alt bx-spin'></i> Retrieving data stream...</div>`;
-        log("Fetching live data from Firestore...", "info");
+        log("Fetching live data...", "info");
 
         try {
             const q = query(collection(db, "questions"), orderBy("timestamp", "desc"));
@@ -469,7 +474,7 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
             
             let html = `
                 <div class="count-box">
-                    <span style="color:var(--text-muted);">TOTAL QUESTIONS IN DATABASE</span>
+                    <span style="color:var(--text-muted);">TOTAL QUESTIONS</span>
                     <span style="font-size: 20px; font-weight:bold; color: var(--cyan); text-shadow: 0 0 10px rgba(6,182,212,0.5);">${snap.size}</span>
                 </div>
             `;
@@ -491,7 +496,7 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
             });
             html += "</table>";
             cont.innerHTML = html;
-            log(`Successfully loaded ${snap.size} records.`, "success");
+            log(`Loaded ${snap.size} records.`, "success");
 
         } catch(e) {
             cont.innerHTML = `<div style="color:var(--red); text-align:center;">Error: ${e.message}</div>`;
@@ -499,7 +504,6 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         }
     };
 
-    // --- DELETE ONE ---
     window.delOne = async (id) => {
         if(!confirm("Permanently delete this question?")) return;
         try {
@@ -511,52 +515,39 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         }
     };
 
-    // --- NUKE (DELETE ALL) ---
     window.nukeDatabase = async () => {
         const code = prompt("SECURITY CHECK: Type 'CONFIRM DELETE' to destroy all data.");
         if(code !== "CONFIRM DELETE") {
-            alert("Incorrect code. Operation cancelled.");
-            log("Nuke operation aborted by user.", "info");
+            alert("Incorrect code.");
             return;
         }
 
-        log("WARNING: INITIATING FULL DATABASE WIPE...", "error");
+        log("WARNING: WIPING DATABASE...", "error");
         const btn = document.querySelector('.btn-danger');
         btn.disabled = true;
-        btn.innerText = "DELETING...";
 
         try {
             const q = query(collection(db, "questions"));
             const snap = await getDocs(q);
             
-            if(snap.empty) {
-                log("Database is already empty.", "info");
-                btn.disabled = false;
-                btn.innerHTML = "<i class='bx bxs-radiation'></i> NUKE DATABASE";
-                return;
-            }
-
-            const total = snap.size;
             const deletePromises = snap.docs.map(d => deleteDoc(doc(db, "questions", d.id)));
             await Promise.all(deletePromises);
 
-            log(`DATABASE PURGED. ${total} records removed.`, "success");
+            log(`DATABASE PURGED.`, "success");
             alert("Success: Database has been wiped.");
-            
-            document.getElementById('liveContent').innerHTML = "<div style='padding:20px; text-align:center;'>Database Cleared.</div>";
+            window.fetchLive();
             
         } catch(e) {
-            log("Critical Error during wipe: " + e.message, "error");
+            log("Error during wipe: " + e.message, "error");
         } finally {
             btn.disabled = false;
-            btn.innerHTML = "<i class='bx bxs-radiation'></i> NUKE DATABASE";
         }
     };
 
     window.clearInput = () => {
         document.getElementById('rawInput').value = "";
         document.getElementById('previewArea').style.display = 'none';
-        log("Input buffer cleared.", "info");
+        log("Input cleared.", "info");
     };
 
 </script>
