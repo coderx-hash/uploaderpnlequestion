@@ -14,6 +14,7 @@
             --purple: #8b5cf6;
             --green: #10b981;
             --red: #ef4444;
+            --yellow: #f59e0b;
             --text-main: #e2e8f0;
             --text-muted: #94a3b8;
         }
@@ -151,6 +152,7 @@
         .log-success { color: var(--green); }
         .log-error { color: var(--red); }
         .log-info { color: var(--cyan); }
+        .log-warn { color: var(--yellow); }
 
         /* TABLE & PREVIEW */
         table { width: 100%; border-collapse: separate; border-spacing: 0 8px; font-size: 14px; }
@@ -194,11 +196,10 @@
 
 <div class="container">
     
-    <!-- HEADER -->
     <div class="header">
         <div>
             <h1>PNLE Command Center</h1>
-            <div style="color: var(--text-muted); font-size: 14px; letter-spacing: 1px;">DATABASE MANAGEMENT SYSTEM v2.0</div>
+            <div style="color: var(--text-muted); font-size: 14px; letter-spacing: 1px;">DATABASE MANAGEMENT SYSTEM v2.1</div>
         </div>
         <div class="status-pill">
             <div class="status-dot"></div>
@@ -206,16 +207,14 @@
         </div>
     </div>
 
-    <!-- LOGS -->
     <div class="panel">
         <h3><i class='bx bx-terminal'></i> System Activity</h3>
         <div class="log-container" id="sysLog">
             <div class="log-entry log-info">> System Initialized...</div>
-            <div class="log-entry">> Auto-detection algorithm loaded (NP1-NP5)...</div>
+            <div class="log-entry">> Deduplication Protocol: ACTIVE</div>
         </div>
     </div>
 
-    <!-- INPUT -->
     <div class="panel">
         <h3><i class='bx bx-code-block'></i> Data Ingestion</h3>
         <textarea id="rawInput" placeholder="Paste your questions here...
@@ -238,7 +237,6 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         </div>
     </div>
 
-    <!-- DANGER ZONE -->
     <div class="panel" style="border: 1px solid rgba(239, 68, 68, 0.3);">
         <h3 style="color: var(--red)"><i class='bx bxs-error'></i> Danger Zone</h3>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
@@ -252,13 +250,11 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         </div>
     </div>
 
-    <!-- PREVIEW AREA -->
     <div id="previewArea" class="panel" style="display:none;">
         <h3><i class='bx bx-list-check'></i> Scan Results</h3>
         <div id="previewContent"></div>
     </div>
 
-    <!-- LIVE DATA AREA -->
     <div id="liveDataArea" class="panel" style="display:none;">
         <h3><i class='bx bx-server'></i> Live Firestore Data</h3>
         <div id="liveContent"></div>
@@ -268,7 +264,7 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, doc, deleteDoc, getDocs, writeBatch, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, deleteDoc, getDocs, writeBatch, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // --- CONFIG ---
     const firebaseConfig = {
@@ -294,6 +290,7 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         
         if(type === 'success') line.classList.add('log-success');
         if(type === 'error') line.classList.add('log-error');
+        if(type === 'warn') line.classList.add('log-warn');
         if(type === 'info') line.classList.add('log-info');
 
         line.innerText = `[${ts}] > ${msg}`;
@@ -402,20 +399,33 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         }
     }
 
-    // --- UPLOAD ---
+    // --- UPLOAD WITH DUPLICATE CHECK ---
     window.uploadData = async () => {
         const btn = document.getElementById('btnUpload');
         const validItems = parsedPayload.filter(i => i.valid);
         
         btn.disabled = true;
         btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Uploading...`;
-        log("Starting batch upload to Firestore...", "info");
+        log("Starting batch upload with deduplication...", "info");
 
         let success = 0;
         let fail = 0;
+        let duplicates = 0;
 
         for(const item of validItems) {
             try {
+                // 1. Check for Duplicate
+                const q = query(collection(db, "questions"), where("question", "==", item.question));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // Duplicate found! Skip it.
+                    duplicates++;
+                    log(`Skipped duplicate: "${item.question.substring(0,20)}..."`, "warn");
+                    continue; 
+                }
+
+                // 2. Add if not duplicate
                 await addDoc(collection(db, "questions"), {
                     question: item.question,
                     options: item.options,
@@ -431,7 +441,8 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
             }
         }
 
-        log(`Upload Batch Finished. Success: ${success}, Failed: ${fail}`, success > 0 ? "success" : "error");
+        log(`Batch Finished. Uploaded: ${success}, Skipped (Duplicate): ${duplicates}, Errors: ${fail}`, success > 0 ? "success" : "warn");
+        
         btn.innerHTML = `<i class='bx bx-check'></i> Complete`;
         setTimeout(() => { btn.innerHTML = `<i class='bx bx-cloud-upload'></i> Upload to Database`; }, 3000);
         window.fetchLive();
@@ -456,7 +467,6 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
                 return;
             }
             
-            // --- NEW: TOTAL COUNT DISPLAY ---
             let html = `
                 <div class="count-box">
                     <span style="color:var(--text-muted);">TOTAL QUESTIONS IN DATABASE</span>
@@ -495,7 +505,6 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
         try {
             await deleteDoc(doc(db, "questions", id));
             document.getElementById(`row-${id}`).style.display = 'none';
-            // Optional: Re-fetch to update count, or just let user click 'View Live Data' again
             log(`Deleted record ${id}`, "success");
         } catch(e) {
             log("Failed to delete record.", "error");
@@ -528,7 +537,6 @@ Category: NP5 (Leave blank to use Auto-Detect)"></textarea>
             }
 
             const total = snap.size;
-            // Delete one by one
             const deletePromises = snap.docs.map(d => deleteDoc(doc(db, "questions", d.id)));
             await Promise.all(deletePromises);
 
